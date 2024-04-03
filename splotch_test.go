@@ -87,3 +87,64 @@ func BenchmarkSplotchGetByHalfOfKeys(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkSplotchStoring(b *testing.B) {
+	splotch, err := NewInkSplotch(getSplotchTestFile())
+	if err != nil {
+		b.Fatal(err)
+	}
+	MaxRowsPerSplotch = b.N + 1
+	b.ResetTimer()
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		b.StartTimer()
+		if err := splotch.AutoAppend(data); err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+	}
+}
+
+func BenchmarkSplotchStoringToDisc(b *testing.B) {
+	splotch, err := NewInkSplotch(getSplotchTestFile())
+	if err != nil {
+		b.Fatal(err)
+	}
+	MaxRowsPerSplotch = b.N + 1
+	b.ResetTimer()
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		if err := splotch.AutoAppend(data); err != nil {
+			b.Fatal(err)
+		}
+		b.StartTimer()
+		if err := splotch.saveToFile(); err != nil {
+			b.Fatal(err)
+		}
+		b.StopTimer()
+	}
+}
+func BenchmarkSplotchStoringBulkToDisc(b *testing.B) {
+	splotch, err := NewInkSplotch(getSplotchTestFile())
+	if err != nil {
+		b.Fatal(err)
+	}
+	MaxRowsPerSplotch = b.N + 1
+	b.ResetTimer()
+	b.StopTimer()
+	for i := 0; i < b.N; i++ {
+		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		if err := splotch.AutoAppend(data); err != nil {
+			b.Fatal(err)
+		}
+		if i%100 == 0 {
+			b.StartTimer()
+			if err := splotch.saveToFile(); err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.StopTimer()
+	}
+}
