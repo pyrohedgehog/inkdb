@@ -1,6 +1,8 @@
 package inkdb
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 //lets crack out a main db layer
 
@@ -9,15 +11,17 @@ type InkDB struct {
 	inkSacks map[string]inkSack //map[tableName]->sacks
 }
 
-// this is per clustering of splotches. EG, one per stored table.
-type inkSack struct {
-	propertiesFileLocation string //where is this storing it's data.
-	inkSplotches           []inkSplotch
-}
-
-func (is *inkSack) LoadFromDisc() error {
-	//figure out what files are inkSplotch files, then load those to a partial state.
-	return nil
+func NewInkDB(storing string) (*InkDB, error) {
+	idb := &InkDB{}
+	//TODO: listed
+	//find any files associated to itself.
+	//be able to add tables
+	//be able to get from tables
+	//get will be the keyword to get a selection. It will be get <from> <to>, and only return in order.
+	//put will be the keyword to append a new piece of data to a specific table
+	//place will be to place into a specific table with a specific key (if ever, for some reason is needed)
+	//kick will act the same as get, but in reverse. removing all that data from the DB.
+	return idb, nil
 }
 
 // this is the bottom most layer. The item that is actually written to disc.
@@ -83,5 +87,5 @@ func (k SplotchKey) NextKey() SplotchKey {
 // TODO: if i change Splotchkey back to variable length, i need to change this
 func (k SplotchKey) Plus(a uint32) SplotchKey {
 	//tbh, I'm not entirely sure why I wrote the keys as byte arrays instead of uint32s... Originally i was going to make them more flexible, in length, but decided to change that...
-	return SplotchKey(binary.BigEndian.AppendUint32(k[:], a))
+	return SplotchKey(binary.BigEndian.AppendUint32([]byte{}, binary.BigEndian.Uint32(k[:])+a))
 }

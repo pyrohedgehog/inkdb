@@ -57,6 +57,28 @@ func TestInkSplotchSaveToFile(t *testing.T) {
 		assert.Equal(t, []byte("Hello World!"), val)
 	}
 }
+func TestSplotchGet(t *testing.T) {
+	splotch, err := NewInkSplotch(getSplotchTestFile())
+	if err != nil {
+		t.Fatal(err)
+	}
+	validKeys := []SplotchKey{}
+	testSize := 10000
+	MaxRowsPerSplotch = testSize + 1
+	for i := 0; i < testSize; i++ {
+		if err := splotch.AutoAppend([]byte(fmt.Sprintf("Value Of i:%v", i))); err != nil {
+			t.Fatal(err)
+		}
+		validKeys = append(validKeys, splotch.headings.LargestKey)
+	}
+	for i := 0; i < testSize; i++ {
+		val, err := splotch.Get(validKeys[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, []byte(fmt.Sprintf("Value Of i:%v", i)), val)
+	}
+}
 func BenchmarkSplotchGetByHalfOfKeys(b *testing.B) {
 	splotch, err := NewInkSplotch(getSplotchTestFile())
 	if err != nil {

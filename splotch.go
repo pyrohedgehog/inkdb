@@ -8,7 +8,7 @@ import (
 )
 
 // this is kept as a variable instead of a constant for the sake of testing. Benchmarks scale each splotch larger than I might otherwise want.
-var MaxRowsPerSplotch int = 1000
+var MaxRowsPerSplotch int = 65535 //2^16-1
 
 // all of the item at the top of the file.
 type fileHeadings struct {
@@ -43,6 +43,10 @@ func NewInkSplotch(fileLocation string) (*inkSplotch, error) {
 	}
 }
 
+func (splotch *inkSplotch) IsFull() bool {
+	return splotch.headings.LinesStored >= MaxRowsPerSplotch
+}
+
 // get the smallest and largest end currently stored
 func (splotch *inkSplotch) GetEnds() (smallest, largest SplotchKey) {
 	return splotch.smallestKey, splotch.headings.LargestKey
@@ -66,7 +70,7 @@ func (splotch *inkSplotch) AutoAppend(value []byte) error {
 	return nil
 }
 func (splotch *inkSplotch) Append(fullData storedItem) error {
-	if splotch.headings.LinesStored == MaxRowsPerSplotch {
+	if splotch.IsFull() {
 		return ErrSplotchFull
 	}
 	if splotch.headings.LargestKey.GreaterOrEqual(fullData.Key) {
@@ -101,6 +105,7 @@ func (splotch *inkSplotch) Get(by SplotchKey) ([]byte, error) {
 }
 func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a storedItem) bool) (storedItem, error) {
 	if splotch.headings.LinesStored == 0 {
+		//checks if it is empty. If it is, it cannot have anything.
 		return storedItem{}, ErrSplotchRangeExceeded
 	}
 	zeroVal := *splotch.storedItems[0]
