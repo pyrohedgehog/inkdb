@@ -23,10 +23,10 @@ func TestInkSplotchSaveToFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := splotch.saveToFile(); err != nil {
+	if err := splotch.SaveToFile(); err != nil {
 		t.Fatal(err)
 	}
-	if err := splotch.fullyLoad(); err != nil {
+	if err := splotch.FullyLoad(); err != nil {
 		t.Fatal(err)
 	}
 	if err := splotch.Append(storedItem{
@@ -38,7 +38,7 @@ func TestInkSplotchSaveToFile(t *testing.T) {
 	if err := splotch.AutoAppend([]byte("Hello World!")); err != nil {
 		t.Fatal(err)
 	}
-	if err := splotch.saveToFile(); err != nil {
+	if err := splotch.SaveToFile(); err != nil {
 		t.Fatal(err)
 	}
 	splotch2, err := NewInkSplotch(fileLocation)
@@ -120,7 +120,7 @@ func BenchmarkSplotchStoringToDisc(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.StartTimer()
-		if err := splotch.saveToFile(); err != nil {
+		if err := splotch.SaveToFile(); err != nil {
 			b.Fatal(err)
 		}
 		b.StopTimer()
@@ -141,7 +141,7 @@ func BenchmarkSplotchStoringBulkToDisc(b *testing.B) {
 		}
 		if i%100 == 0 {
 			b.StartTimer()
-			if err := splotch.saveToFile(); err != nil {
+			if err := splotch.SaveToFile(); err != nil {
 				b.Fatal(err)
 			}
 		}

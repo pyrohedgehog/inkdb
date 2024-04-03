@@ -1,5 +1,7 @@
 package inkdb
 
+import "encoding/binary"
+
 //lets crack out a main db layer
 
 // this is the top layer called.
@@ -11,6 +13,11 @@ type InkDB struct {
 type inkSack struct {
 	propertiesFileLocation string //where is this storing it's data.
 	inkSplotches           []inkSplotch
+}
+
+func (is *inkSack) LoadFromDisc() error {
+	//figure out what files are inkSplotch files, then load those to a partial state.
+	return nil
 }
 
 // this is the bottom most layer. The item that is actually written to disc.
@@ -67,22 +74,14 @@ func (a SplotchKey) Equal(b SplotchKey) bool {
 	}
 	return true
 }
+
+// generates the next incremental key
 func (k SplotchKey) NextKey() SplotchKey {
-	carriedOne := true
-	out := SplotchKey{}
-	for i := len(k) - 1; i != 0; i-- {
-		by := k[i]
-		if carriedOne {
-			//we need to add one to this value.
-			if uint8(by) == 255 {
-				out[i] = 0
-			} else {
-				carriedOne = false
-				out[i] = by + 1
-			}
-		} else {
-			out[i] = by
-		}
-	}
-	return out
+	return k.Plus(1)
+}
+
+// TODO: if i change Splotchkey back to variable length, i need to change this
+func (k SplotchKey) Plus(a uint32) SplotchKey {
+	//tbh, I'm not entirely sure why I wrote the keys as byte arrays instead of uint32s... Originally i was going to make them more flexible, in length, but decided to change that...
+	return SplotchKey(binary.BigEndian.AppendUint32(k[:], a))
 }

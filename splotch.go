@@ -33,16 +33,20 @@ func NewInkSplotch(fileLocation string) (*inkSplotch, error) {
 	//check that the file already exists.
 	if _, err := os.Stat(fileLocation); errors.Is(err, os.ErrNotExist) {
 		// it doesn't exist.
-		return splotch, splotch.saveToFile()
+		return splotch, splotch.SaveToFile()
 	} else if err == nil {
 		//file already exists. So we will try to load from it
-		return splotch, splotch.partialLoad()
+		return splotch, splotch.PartialLoad()
 	} else {
 		//some unknown error occurred
 		return nil, err
 	}
 }
 
+// get the smallest and largest end currently stored
+func (splotch *inkSplotch) GetEnds() (smallest, largest SplotchKey) {
+	return splotch.smallestKey, splotch.headings.LargestKey
+}
 func (splotch *inkSplotch) AutoAppend(value []byte) error {
 	if splotch.headings.LinesStored == MaxRowsPerSplotch {
 		return ErrSplotchFull
@@ -82,7 +86,7 @@ func (splotch *inkSplotch) Get(by SplotchKey) ([]byte, error) {
 		return nil, ErrSplotchRangeExceeded
 	}
 	if !splotch.hasFullyLoaded {
-		if err := splotch.fullyLoad(); err != nil {
+		if err := splotch.FullyLoad(); err != nil {
 			return nil, err
 		}
 	}
@@ -130,7 +134,7 @@ func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a store
 		}
 	}
 }
-func (splotch *inkSplotch) partialLoad() error {
+func (splotch *inkSplotch) PartialLoad() error {
 	if _, err := os.Stat(splotch.fileLocation); err != nil {
 		//the file does not exist
 		return err
@@ -163,13 +167,13 @@ func (splotch *inkSplotch) partialLoad() error {
 	//then that data should be put into splotch
 	return nil
 }
-func (splotch *inkSplotch) fullyLoad() error {
+func (splotch *inkSplotch) FullyLoad() error {
 	if _, err := os.Stat(splotch.fileLocation); err != nil {
 		//the file does not exist
 		return err
 	}
 	//if the file already exists, if it does, load this data. if not, create a new blank file for it.
-	f, err := os.OpenFile(splotch.fileLocation, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(splotch.fileLocation, os.O_RDONLY, 0666) //TODO: fix the permissions to be closer to what we need...
 	if err != nil {
 		return err
 	}
@@ -200,7 +204,7 @@ func (splotch *inkSplotch) fullyLoad() error {
 	splotch.hasFullyLoaded = true
 	return nil
 }
-func (splotch *inkSplotch) saveToFile() error {
+func (splotch *inkSplotch) SaveToFile() error {
 	//first, we write the largest value we've found so far.
 	f, err := os.OpenFile(splotch.fileLocation, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
