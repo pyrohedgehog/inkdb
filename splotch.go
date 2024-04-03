@@ -7,7 +7,14 @@ import (
 	"os"
 )
 
+// this is kept as a variable instead of a constant for the sake of testing. Benchmarks scale each splotch larger than I might otherwise want.
 var MaxRowsPerSplotch int = 1000
+
+// all of the item at the top of the file.
+type fileHeadings struct {
+	LargestKey  SplotchKey
+	LinesStored int
+}
 
 // this is per folder. Holds all of the stored items, as well as their values. Can be generated from a file.
 type inkSplotch struct {

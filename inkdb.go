@@ -9,14 +9,8 @@ type InkDB struct {
 
 // this is per clustering of splotches. EG, one per stored table.
 type inkSack struct {
-	folderLocation string //what folder are the splotches in
-	inkSplotches   []inkSplotch
-}
-
-// all of the item at the top of the file.
-type fileHeadings struct {
-	LargestKey  SplotchKey
-	LinesStored int
+	propertiesFileLocation string //where is this storing it's data.
+	inkSplotches           []inkSplotch
 }
 
 // this is the bottom most layer. The item that is actually written to disc.
