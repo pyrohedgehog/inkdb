@@ -17,6 +17,10 @@ func getSplotchTestFile() string {
 	os.Remove(testSplotchFile)
 	return testSplotchFile
 }
+func getBasicPlaceholder(i int) []byte {
+	return []byte(fmt.Sprintf("Value Of i:%v", i))
+}
+
 func TestInkSplotchSaveToFile(t *testing.T) {
 	fileLocation := getSplotchTestFile()
 	splotch, err := NewInkSplotch(fileLocation)
@@ -66,7 +70,7 @@ func TestSplotchGet(t *testing.T) {
 	testSize := 10000
 	MaxRowsPerSplotch = testSize + 1
 	for i := 0; i < testSize; i++ {
-		if err := splotch.AutoAppend([]byte(fmt.Sprintf("Value Of i:%v", i))); err != nil {
+		if err := splotch.AutoAppend(getBasicPlaceholder(i)); err != nil {
 			t.Fatal(err)
 		}
 		validKeys = append(validKeys, splotch.headings.LargestKey)
@@ -76,7 +80,7 @@ func TestSplotchGet(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assert.Equal(t, []byte(fmt.Sprintf("Value Of i:%v", i)), val)
+		assert.Equal(t, getBasicPlaceholder(i), val)
 	}
 }
 func BenchmarkSplotchGetByHalfOfKeys(b *testing.B) {
@@ -87,7 +91,7 @@ func BenchmarkSplotchGetByHalfOfKeys(b *testing.B) {
 	validKeys := []SplotchKey{}
 	MaxRowsPerSplotch = b.N*2 + 1
 	for i := 0; i < b.N*2; i++ {
-		if err := splotch.AutoAppend([]byte(fmt.Sprintf("Value Of i:%v", i))); err != nil {
+		if err := splotch.AutoAppend(getBasicPlaceholder(i)); err != nil {
 			b.Fatal(err)
 		}
 		validKeys = append(validKeys, splotch.headings.LargestKey)
@@ -119,7 +123,7 @@ func BenchmarkSplotchStoring(b *testing.B) {
 	b.ResetTimer()
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		data := getBasicPlaceholder(i)
 		b.StartTimer()
 		if err := splotch.AutoAppend(data); err != nil {
 			b.Fatal(err)
@@ -137,7 +141,7 @@ func BenchmarkSplotchStoringToDisc(b *testing.B) {
 	b.ResetTimer()
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		data := getBasicPlaceholder(i)
 		if err := splotch.AutoAppend(data); err != nil {
 			b.Fatal(err)
 		}
@@ -157,7 +161,7 @@ func BenchmarkSplotchStoringBulkToDisc(b *testing.B) {
 	b.ResetTimer()
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
-		data := []byte(fmt.Sprintf("Value Of i:%v", i))
+		data := getBasicPlaceholder(i)
 		if err := splotch.AutoAppend(data); err != nil {
 			b.Fatal(err)
 		}

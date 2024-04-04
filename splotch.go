@@ -233,3 +233,27 @@ func (splotch *inkSplotch) SaveToFile() error {
 
 	return f.Close()
 }
+func (splotch *inkSplotch) GetAll(from, to SplotchKey) ([]storedItem, error) {
+	if from.GreaterThan(splotch.headings.LargestKey) || to.LessThan(splotch.smallestKey) {
+		//outside our range, no need to care.
+		return nil, ErrSplotchRangeExceeded
+	}
+	if !splotch.hasFullyLoaded {
+		if err := splotch.FullyLoad(); err != nil {
+			return nil, err
+		}
+	}
+	//TODO: this can be sped up by checking first if the range would fully contain this, start within but go on, start outside but finish within, or if it is fully contained, and handle it from there.
+	//if this is fully contained, then just return all items.
+	//if it just starts/stops here, find that point, and take the rest.
+	//if it's contained within this, find the start and end, and return that portion.
+	foundItems := []storedItem{}
+	for _, item := range splotch.storedItems {
+		if item.Key.GreaterOrEqual(from) && item.Key.LessOrEqual(to) {
+			foundItems = append(foundItems, *item)
+		} else {
+			return foundItems, nil
+		}
+	}
+	return foundItems, nil
+}

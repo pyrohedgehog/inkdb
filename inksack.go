@@ -159,3 +159,20 @@ func (is *inkSack) Commit() error {
 	}
 	return nil
 }
+func (is *inkSack) GetAll(from, to SplotchKey) ([]storedItem, error) {
+	//TODO: this can be sped up a lot with binary searches... but i'm tired of writing those for today...
+	ans := []storedItem{}
+	for _, splotch := range is.inkSplotches {
+		returned, err := splotch.GetAll(from, to)
+		if err != ErrSplotchRangeExceeded && err != nil {
+			return nil, err
+		} else if err == ErrSplotchRangeExceeded && len(ans) != 0 {
+			//then we've hit this error after finding items. therefor we should be at the end of the range
+			break
+		}
+		if err == nil {
+			ans = append(ans, returned...)
+		}
+	}
+	return ans, nil
+}
