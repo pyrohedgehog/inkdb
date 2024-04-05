@@ -108,36 +108,52 @@ func (is *inkSack) SearchForSplotch(lt, eq func(storedItem) bool) (*inkSplotch, 
 		return is.inkSplotches[0], nil
 	}
 	//look through all of the splotches, if the max value is less than, and the min value is not less than, thats our splotch.
-	size := len(is.inkSplotches) / 2
-	start := size - 1
-	for {
-		splotch := is.inkSplotches[start]
-		min, max := splotch.GetEnds()
-		minItem, err := splotch.GetStoredItem(min)
-		if err != nil {
-			return nil, err
+	index := BinarySearch(is.inkSplotches,
+		func(splotch *inkSplotch) bool {
+			min, _ := splotch.GetEnds()
+			minItem, _ := splotch.GetStoredItem(min)
+			return lt(minItem)
+		},
+		func(splotch *inkSplotch) bool {
+			min, max := splotch.GetEnds()
+			minItem, _ := splotch.GetStoredItem(min)
+			maxItem, _ := splotch.GetStoredItem(max)
+			return ((lt(maxItem) || SplotchKey{}.Equal(max)) && !lt(minItem)) || //checking that it is within the range
+				eq(maxItem) //however, if it is the last item were looking for, then we would never be able to find it by that check
+
+		},
+	)
+	if index == -1 {
+		return nil, ErrSplotchRangeExceeded
+	}
+	return is.inkSplotches[index], nil
+}
+
+// i've written this so many times, i'm amazed i didn't think of this.
+// TODO: this should have a better home... Or be replaced with a library import.
+
+// Search arr for the index of the value. isLessThan(test) should be target<test
+func BinarySearch[T any](arr []T, isLessThan, eq func(T) bool) (index int) {
+	size := len(arr) / 2
+	index = size
+	//just throwing this in a normal for loop. I know it should be faster than n/2, but for now this will work.
+	for i := 0; i < len(arr)/2; i++ {
+		item := arr[index]
+		if eq(item) {
+			return index
 		}
-		maxItem, err := splotch.GetStoredItem(max)
-		if err != nil {
-			return nil, err
-		}
-		size = size / 2
+		size /= 2
 		if size == 0 {
 			size = 1
 		}
-		if ((lt(maxItem) || SplotchKey{}.Equal(max)) && !lt(minItem)) || //checking that it is within the range
-			eq(maxItem) { //however, if it is the last item were looking for, then we would never be able to find it by that check
-			//we've found it!
-			return splotch, nil
-		}
-		if lt(minItem) {
-			//its smaller than this halfway point
-			start -= size
+		if isLessThan(item) {
+			//it is less than this item
+			index -= size
 		} else {
-			//its larger than this halfway point
-			start += size
+			index += size
 		}
 	}
+	return -1
 }
 
 // add another splotch to follow the last one
