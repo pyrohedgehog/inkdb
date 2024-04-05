@@ -251,8 +251,6 @@ func (splotch *inkSplotch) GetAll(from, to SplotchKey) ([]storedItem, error) {
 	for _, item := range splotch.storedItems {
 		if item.Key.GreaterOrEqual(from) && item.Key.LessOrEqual(to) {
 			foundItems = append(foundItems, *item)
-		} else {
-			return foundItems, nil
 		}
 	}
 	return foundItems, nil

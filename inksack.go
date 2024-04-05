@@ -146,7 +146,7 @@ func (is *inkSack) addSplotch() error {
 	}
 	//set the new splotch's smallest key, to one more than the previous ones largest.
 	if len(is.inkSplotches) != 0 {
-		splotch.headings.LargestKey = is.inkSplotches[len(is.inkSplotches)-1].headings.LargestKey.NextKey()
+		splotch.headings.LargestKey = is.inkSplotches[len(is.inkSplotches)-1].headings.LargestKey
 	}
 	is.inkSplotches = append(is.inkSplotches, splotch)
 	return nil
