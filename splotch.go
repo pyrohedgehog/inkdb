@@ -3,6 +3,7 @@ package inkdb
 import (
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 )
@@ -127,25 +128,20 @@ func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a store
 		return storedItem{}, ErrSplotchRangeExceeded
 	}
 	//it should be within here.
-	size := len(splotch.storedItems) / 2
-	start := size
-	for {
-		if eq(*splotch.storedItems[start]) {
-			//then we've found it.
-			return *splotch.storedItems[start], nil
-		}
-		size = size / 2
-		if size == 0 {
-			size = 1
-		}
-		if lt(*splotch.storedItems[start]) {
-			//its smaller than this half
-			start -= size
-		} else {
-			//its larger than this half point
-			start += size
-		}
+	index := BinarySearch(splotch.storedItems,
+		func(item *storedItem) bool {
+			return lt(*item)
+		},
+		func(item *storedItem) bool {
+			return eq(*item)
+		},
+	)
+	if index == -1 {
+		return storedItem{}, fmt.Errorf("within range, but item not found")
 	}
+	//then we've found it.
+	return *splotch.storedItems[index], nil
+
 }
 func (splotch *inkSplotch) PartialLoad() error {
 	if _, err := os.Stat(splotch.fileLocation); err != nil {
@@ -251,57 +247,31 @@ func (splotch *inkSplotch) GetAll(from, to SplotchKey) ([]storedItem, error) {
 			return nil, err
 		}
 	}
-	//TODO: this can be sped up by checking first if the range would fully contain this, start within but go on, start outside but finish within, or if it is fully contained, and handle it from there.
+	//this can be sped up by checking first if the range would fully contain this, start within but go on, start outside but finish within, or if it is fully contained, and handle it from there.
 	//if this is fully contained, then just return all items.
 	//if it just starts/stops here, find that point, and take the rest.
 	//if it's contained within this, find the start and end, and return that portion.
 	startIndex := 0
 	if from.GreaterThan(splotch.smallestKey) {
 		//it starts somewhere within us.
-		size := len(splotch.storedItems) / 2
-		startIndex = size
-		for {
-			//half our size each time it's in the lower half
-			focalKey := splotch.storedItems[startIndex].Key
-			if focalKey.Equal(from) {
-				break
-			}
-			size = size / 2
-			if size == 0 {
-				size = 1
-			}
-			if focalKey.GreaterThan(from) {
-				//then we need to check the lower part
-				startIndex -= size
-			} else {
-				startIndex += size
-			}
-		}
+		startIndex = BinarySearch(splotch.storedItems, func(item *storedItem) bool {
+			return item.Key.GreaterThan(from)
+		},
+			func(item *storedItem) bool {
+				return item.Key.Equal(from)
+			},
+		)
 	}
 	endIndex := len(splotch.storedItems) - 1
 	if to.LessThan(splotch.headings.LargestKey) {
 		//it ends within us.
-		size := (len(splotch.storedItems)) / 2
-		start := size
-
-		for {
-			//half our size each time it's in the lower half
-			focalKey := splotch.storedItems[start].Key
-			if focalKey.Equal(to) {
-				endIndex = start
-				break
-			}
-			size = size / 2
-			if size == 0 {
-				size = 1
-			}
-			if focalKey.GreaterThan(to) {
-				//then we need to check the lower part
-				start -= size
-			} else {
-				start += size
-			}
-		}
+		endIndex = BinarySearch(splotch.storedItems, func(item *storedItem) bool {
+			return item.Key.GreaterThan(to)
+		},
+			func(item *storedItem) bool {
+				return item.Key.Equal(to)
+			},
+		)
 	}
 	foundItems := make([]storedItem, 0, endIndex-startIndex)
 	for i := startIndex; i <= endIndex; i++ {
