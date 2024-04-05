@@ -9,7 +9,23 @@ Like append, but will (attempt) to place the data at a specific point. No promis
 ### KICK \<from> \<to>
 removes all data between those points. Ideal for removing expired data.
 
+# How to use it!
+Start by creating a new InkDB (or loading) within your code.
+```Go
+//something that needs storage
 
+ink, err := inkdb.NewInkDB(path.Join(os.Getwd(), "<where it should live>"))
+if err!=nil{
+  //or figure out how to handle the error. I write the library, not the rules here.
+  panic(err)
+}
+type placeholderStorage struct{
+  ExportableType string
+}
+ink.NewTable("whatever you want to name it", &placeholderStorage{})
+ink.Append("whatever you named it", &palceholderStorage{"hello world"})
+
+```
 ## Places for improvement
 
 ### threading.
