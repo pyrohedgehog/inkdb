@@ -86,12 +86,16 @@ func (splotch *inkSplotch) Append(fullData storedItem) error {
 	return nil
 }
 func (splotch *inkSplotch) Get(by SplotchKey) ([]byte, error) {
+	found, err := splotch.GetStoredItem(by)
+	return found.Value, err
+}
+func (splotch *inkSplotch) GetStoredItem(by SplotchKey) (storedItem, error) {
 	if by.GreaterThan(splotch.headings.LargestKey) || by.LessThan(splotch.smallestKey) {
-		return nil, ErrSplotchRangeExceeded
+		return storedItem{}, ErrSplotchRangeExceeded
 	}
 	if !splotch.hasFullyLoaded {
 		if err := splotch.FullyLoad(); err != nil {
-			return nil, err
+			return storedItem{}, err
 		}
 	}
 	//it should be in here. So lets write a bit of a binary search function
@@ -101,7 +105,7 @@ func (splotch *inkSplotch) Get(by SplotchKey) ([]byte, error) {
 		return by.Equal(a.Key)
 	})
 
-	return found.Value, err
+	return found, err
 }
 func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a storedItem) bool) (storedItem, error) {
 	if splotch.headings.LinesStored == 0 {
@@ -123,16 +127,20 @@ func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a store
 		return storedItem{}, ErrSplotchRangeExceeded
 	}
 	//it should be within here.
-	size := len(splotch.storedItems) - 1
-	start := 0
+	size := len(splotch.storedItems) / 2
+	start := size
 	for {
-		if eq(*splotch.storedItems[start+size]) {
+		if eq(*splotch.storedItems[start]) {
 			//then we've found it.
-			return *splotch.storedItems[start+size], nil
+			return *splotch.storedItems[start], nil
 		}
-		if lt(*splotch.storedItems[start+(size)]) {
+		size = size / 2
+		if size == 0 {
+			size = 1
+		}
+		if lt(*splotch.storedItems[start]) {
 			//its smaller than this half
-			size = size / 2
+			start -= size
 		} else {
 			//its larger than this half point
 			start += size
@@ -247,11 +255,58 @@ func (splotch *inkSplotch) GetAll(from, to SplotchKey) ([]storedItem, error) {
 	//if this is fully contained, then just return all items.
 	//if it just starts/stops here, find that point, and take the rest.
 	//if it's contained within this, find the start and end, and return that portion.
-	foundItems := []storedItem{}
-	for _, item := range splotch.storedItems {
-		if item.Key.GreaterOrEqual(from) && item.Key.LessOrEqual(to) {
-			foundItems = append(foundItems, *item)
+	startIndex := 0
+	if from.GreaterThan(splotch.smallestKey) {
+		//it starts somewhere within us.
+		size := len(splotch.storedItems) / 2
+		startIndex = size
+		for {
+			//half our size each time it's in the lower half
+			focalKey := splotch.storedItems[startIndex].Key
+			if focalKey.Equal(from) {
+				break
+			}
+			size = size / 2
+			if size == 0 {
+				size = 1
+			}
+			if focalKey.GreaterThan(from) {
+				//then we need to check the lower part
+				startIndex -= size
+			} else {
+				startIndex += size
+			}
 		}
+	}
+	endIndex := len(splotch.storedItems) - 1
+	if to.LessThan(splotch.headings.LargestKey) {
+		//it ends within us.
+		size := (len(splotch.storedItems)) / 2
+		start := size
+
+		for {
+			//half our size each time it's in the lower half
+			focalKey := splotch.storedItems[start].Key
+			if focalKey.Equal(to) {
+				endIndex = start
+				break
+			}
+			size = size / 2
+			if size == 0 {
+				size = 1
+			}
+			if focalKey.GreaterThan(to) {
+				//then we need to check the lower part
+				start -= size
+			} else {
+				start += size
+			}
+		}
+	}
+	foundItems := make([]storedItem, 0, endIndex-startIndex)
+	for i := startIndex; i <= endIndex; i++ {
+		//just do the iteration so we can convert the type
+		foundItems = append(foundItems, *splotch.storedItems[i])
 	}
 	return foundItems, nil
 }

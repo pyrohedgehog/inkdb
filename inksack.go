@@ -103,33 +103,36 @@ func (is *inkSack) Append(data storedItem) error {
 	}
 }
 
-func (is *inkSack) SearchForSplotch(lt func(a storedItem) bool) (*inkSplotch, error) {
+func (is *inkSack) SearchForSplotch(lt, eq func(storedItem) bool) (*inkSplotch, error) {
 	if len(is.inkSplotches) <= 1 {
 		return is.inkSplotches[0], nil
 	}
 	//look through all of the splotches, if the max value is less than, and the min value is not less than, thats our splotch.
-	size := len(is.inkSplotches) - 1
-	start := 0
+	size := len(is.inkSplotches) / 2
+	start := size - 1
 	for {
-		splotch := is.inkSplotches[start+size]
+		splotch := is.inkSplotches[start]
 		min, max := splotch.GetEnds()
-		minData, err := splotch.Get(min)
+		minItem, err := splotch.GetStoredItem(min)
 		if err != nil {
 			return nil, err
 		}
-		maxData, err := splotch.Get(max)
-		minItem := storedItem{Key: min, Value: minData}
-		maxItem := storedItem{Key: max, Value: maxData}
+		maxItem, err := splotch.GetStoredItem(max)
 		if err != nil {
 			return nil, err
 		}
-		if (lt(maxItem) || max.Equal(SplotchKey{})) && !lt(minItem) {
+		size = size / 2
+		if size == 0 {
+			size = 1
+		}
+		if ((lt(maxItem) || SplotchKey{}.Equal(max)) && !lt(minItem)) || //checking that it is within the range
+			eq(maxItem) { //however, if it is the last item were looking for, then we would never be able to find it by that check
 			//we've found it!
 			return splotch, nil
 		}
 		if lt(minItem) {
 			//its smaller than this halfway point
-			size = size / 2
+			start -= size
 		} else {
 			//its larger than this halfway point
 			start += size

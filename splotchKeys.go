@@ -5,6 +5,8 @@ import "encoding/binary"
 type SplotchKey [8]byte //a 32 bit index string
 
 // lets say the keys are represented in big endian order.
+
+// returns a<b
 func (a SplotchKey) LessThan(b SplotchKey) bool {
 	for i := 0; i < len(a); i++ {
 		if a[i] == b[i] {
@@ -14,6 +16,8 @@ func (a SplotchKey) LessThan(b SplotchKey) bool {
 	}
 	return false
 }
+
+// returns a<=b
 func (a SplotchKey) LessOrEqual(b SplotchKey) bool {
 	for i := 0; i < len(a); i++ {
 		if a[i] == b[i] {

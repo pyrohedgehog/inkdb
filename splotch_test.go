@@ -55,7 +55,7 @@ func TestInkSplotchSaveToFile(t *testing.T) {
 	} else {
 		assert.Equal(t, []byte("first value"), val)
 	}
-	if val, err := splotch2.Get(SplotchKey{0, 2, 0, 2}); err != nil {
+	if val, err := splotch2.Get(SplotchKey{0, 2, 0, 1}.NextKey()); err != nil {
 		t.Fatal(err)
 	} else {
 		assert.Equal(t, []byte("Hello World!"), val)

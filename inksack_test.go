@@ -19,7 +19,7 @@ func getSackTestFolder() string {
 }
 func TestInkSack(t *testing.T) {
 	folder := getSackTestFolder()
-	MaxRowsPerSplotch = 256
+	MaxRowsPerSplotch = 100
 	is, err := NewInkSack(folder)
 	if err != nil {
 		t.Fatal(err)
@@ -27,19 +27,21 @@ func TestInkSack(t *testing.T) {
 	if err := is.AutoAppend([]byte("hi there!")); err != nil {
 		t.Fatal(err)
 	}
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 1000000; i++ {
 		if err := is.AutoAppend([]byte(fmt.Sprintf("%010v", i))); err != nil {
 			t.Fatal(err)
 		}
 	}
 	ans, err := is.SearchForSplotch(func(a storedItem) bool {
 		//lets find the splotch that has the key 1234
-		return SplotchKey{0, 1, 2, 3}.LessThan(a.Key)
+		return SplotchKey{0, 0, 0, 0, 0, 1, 0, 0}.LessThan(a.Key)
+	}, func(si storedItem) bool {
+		return SplotchKey{0, 0, 0, 0, 0, 1, 0, 0}.Equal(si.Key)
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = ans.Get(SplotchKey{0, 1, 2, 3})
+	_, err = ans.Get(SplotchKey{0, 0, 0, 0, 0, 1, 0, 0})
 	if err != nil {
 		t.Fatal(err)
 	}
