@@ -28,6 +28,8 @@ func NewInkSack(localFiles string) (*inkSack, error) {
 	}
 	return is, is.LoadChildrenFromDisc()
 }
+
+// checks to see if the folders already exist, and if they don't, it generates the correct folders.
 func (is *inkSack) setupFolderStructure() error {
 	if _, err := os.Stat(is.localFilesLocation); err != nil {
 		//no folder found there
@@ -40,6 +42,8 @@ func (is *inkSack) setupFolderStructure() error {
 	}
 	return nil
 }
+
+// loads the needed data from the disc.
 func (is *inkSack) LoadChildrenFromDisc() error {
 	if _, err := os.Stat(is.localFilesLocation); err != nil {
 		//the file does not exist
@@ -62,6 +66,8 @@ func (is *inkSack) LoadChildrenFromDisc() error {
 	})
 	return nil
 }
+
+// generates a key for the piece of data, and stores it automatically. More reliable than Append.
 func (is *inkSack) AutoAppend(data []byte) error {
 	if len(is.inkSplotches) == 0 {
 		if err := is.addSplotch(); err != nil {
@@ -81,6 +87,7 @@ func (is *inkSack) AutoAppend(data []byte) error {
 	return nil
 }
 
+// adds data at given key. Less reliable option compared to AutoAppend!
 func (is *inkSack) Append(data storedItem) error {
 	//check that the key is in an acceptable point.
 	//first, find the splotch it belongs to.
@@ -103,7 +110,8 @@ func (is *inkSack) Append(data storedItem) error {
 	}
 }
 
-func (is *inkSack) SearchForSplotch(lt, eq func(storedItem) bool) (*inkSplotch, error) {
+// finds which splotch contains an element, based on the lessThan, and equal functions
+func (is *inkSack) SearchForSplotch(lessThan, equal func(storedItem) bool) (*inkSplotch, error) {
 	if len(is.inkSplotches) <= 1 {
 		return is.inkSplotches[0], nil
 	}
@@ -112,14 +120,14 @@ func (is *inkSack) SearchForSplotch(lt, eq func(storedItem) bool) (*inkSplotch, 
 		func(splotch *inkSplotch) bool {
 			min, _ := splotch.GetEnds()
 			minItem, _ := splotch.GetStoredItem(min)
-			return lt(minItem)
+			return lessThan(minItem)
 		},
 		func(splotch *inkSplotch) bool {
 			min, max := splotch.GetEnds()
 			minItem, _ := splotch.GetStoredItem(min)
 			maxItem, _ := splotch.GetStoredItem(max)
-			return ((lt(maxItem) || SplotchKey{}.Equal(max)) && !lt(minItem)) || //checking that it is within the range
-				eq(maxItem) //however, if it is the last item were looking for, then we would never be able to find it by that check
+			return ((lessThan(maxItem) || SplotchKey{}.Equal(max)) && !lessThan(minItem)) || //checking that it is within the range
+				equal(maxItem) //however, if it is the last item were looking for, then we would never be able to find it by that check
 
 		},
 	)
@@ -127,33 +135,6 @@ func (is *inkSack) SearchForSplotch(lt, eq func(storedItem) bool) (*inkSplotch, 
 		return nil, ErrSplotchRangeExceeded
 	}
 	return is.inkSplotches[index], nil
-}
-
-// i've written this so many times, i'm amazed i didn't think of this.
-// TODO: this should have a better home... Or be replaced with a library import.
-
-// Search arr for the index of the value. isLessThan(test) should be target<test
-func BinarySearch[T any](arr []T, isLessThan, eq func(T) bool) (index int) {
-	size := len(arr) / 2
-	index = size
-	//just throwing this in a normal for loop. I know it should be faster than n/2, but for now this will work.
-	for i := 0; i < len(arr)/2; i++ {
-		item := arr[index]
-		if eq(item) {
-			return index
-		}
-		size /= 2
-		if size == 0 {
-			size = 1
-		}
-		if isLessThan(item) {
-			//it is less than this item
-			index -= size
-		} else {
-			index += size
-		}
-	}
-	return -1
 }
 
 // add another splotch to follow the last one
@@ -170,6 +151,8 @@ func (is *inkSack) addSplotch() error {
 	is.inkSplotches = append(is.inkSplotches, splotch)
 	return nil
 }
+
+// save any unsaved changes to the disc
 func (is *inkSack) Commit() error {
 	for _, splotch := range is.inkSplotches {
 		if err := splotch.SaveToFile(); err != nil {
@@ -178,8 +161,9 @@ func (is *inkSack) Commit() error {
 	}
 	return nil
 }
+
+// get all storedItems from<from>, to <to>. in chronological order
 func (is *inkSack) GetAll(from, to SplotchKey) ([]storedItem, error) {
-	//TODO: this can be sped up a lot with binary searches... but i'm tired of writing those for today...
 	ans := []storedItem{}
 	for _, splotch := range is.inkSplotches {
 		returned, err := splotch.GetAll(from, to)

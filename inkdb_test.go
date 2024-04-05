@@ -63,6 +63,7 @@ func TestInkDBAlreadyFilled(t *testing.T) {
 	for i := 0; i < itemsAdded; i++ {
 		ink.Append(tableName, generateTestableObject(i))
 	}
+	ink.Commit()
 
 	//check that it can get this from just memory.
 	for i := 1; i < itemsAdded; i++ {
@@ -83,9 +84,50 @@ func TestInkDBAlreadyFilled(t *testing.T) {
 		}
 		assert.Equal(t, goalKey, keys[0])
 		assert.Equal(t, generateTestableObject(itemIndex-1), items[0].(*testableObject))
+	}
+}
 
+func BenchmarkInkDBCommit(b *testing.B) {
+	folder := getInkTestFile()
+	ink, err := NewInkDB(folder)
+	if err != nil {
+		b.Fatal(err)
+	}
+	tableName := "table"
+
+	//no table made yet, so this should throw an error
+
+	if err := ink.NewTable(tableName, &testableObject{}); err != nil {
+		b.Fatal(err)
+	}
+	for i := 0; i < b.N; i++ {
+		ink.Append(tableName, generateTestableObject(i))
+	}
+	b.ResetTimer()
+	b.StartTimer()
+	err = ink.Commit()
+	b.StopTimer()
+	if err != nil {
+		b.Fatal(err)
+	}
+}
+func BenchmarkInkDBFullUse(b *testing.B) {
+	folder := getInkTestFile()
+	ink, err := NewInkDB(folder)
+	if err != nil {
+		b.Fatal(err)
 	}
 
+	//no table made yet, so this should throw an error
+	for i := 0; i < b.N; i++ {
+		tableName := fmt.Sprintf("table:%#04x", i)
+		if err := ink.NewTable(tableName, &testableObject{}); err != nil {
+			b.Fatal(err)
+		}
+		for i := 0; i < b.N; i++ {
+			ink.Append(tableName, generateTestableObject(i))
+		}
+	}
 }
 
 // a type used within inkdb for testing.

@@ -44,6 +44,7 @@ func NewInkSplotch(fileLocation string) (*inkSplotch, error) {
 	}
 }
 
+// checks if it still has space for more items to be added.
 func (splotch *inkSplotch) IsFull() bool {
 	return splotch.headings.LinesStored >= MaxRowsPerSplotch
 }
@@ -52,6 +53,8 @@ func (splotch *inkSplotch) IsFull() bool {
 func (splotch *inkSplotch) GetEnds() (smallest, largest SplotchKey) {
 	return splotch.smallestKey, splotch.headings.LargestKey
 }
+
+// take data, automatically create a key for it, and stores the data.
 func (splotch *inkSplotch) AutoAppend(value []byte) error {
 	if splotch.headings.LinesStored == MaxRowsPerSplotch {
 		return ErrSplotchFull
@@ -70,6 +73,8 @@ func (splotch *inkSplotch) AutoAppend(value []byte) error {
 	}
 	return nil
 }
+
+// takes a data key pair, and attempts to store it by that key. More prone to errors than AutoAppend
 func (splotch *inkSplotch) Append(fullData storedItem) error {
 	if splotch.IsFull() {
 		return ErrSplotchFull
@@ -86,10 +91,14 @@ func (splotch *inkSplotch) Append(fullData storedItem) error {
 	}
 	return nil
 }
+
+// get a vale based on the key. Returns nil if none are found.
 func (splotch *inkSplotch) Get(by SplotchKey) ([]byte, error) {
 	found, err := splotch.GetStoredItem(by)
 	return found.Value, err
 }
+
+// gets the stored item (key and value) from the storage.
 func (splotch *inkSplotch) GetStoredItem(by SplotchKey) (storedItem, error) {
 	if by.GreaterThan(splotch.headings.LargestKey) || by.LessThan(splotch.smallestKey) {
 		return storedItem{}, ErrSplotchRangeExceeded
@@ -108,7 +117,9 @@ func (splotch *inkSplotch) GetStoredItem(by SplotchKey) (storedItem, error) {
 
 	return found, err
 }
-func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a storedItem) bool) (storedItem, error) {
+
+// search for the given data based on the functions LessThan, and Equal.
+func (splotch *inkSplotch) SearchFor(lessThan func(storedItem) bool, equal func(storedItem) bool) (storedItem, error) {
 	if splotch.headings.LinesStored == 0 {
 		//checks if it is empty. If it is, it cannot have anything.
 		return storedItem{}, ErrSplotchRangeExceeded
@@ -116,24 +127,24 @@ func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a store
 	zeroVal := *splotch.storedItems[0]
 	lastVal := *splotch.storedItems[len(splotch.storedItems)-1]
 	//the edges can cause errors, so we check them right away
-	if eq(zeroVal) {
+	if equal(zeroVal) {
 		return zeroVal, nil
 	}
-	if eq(lastVal) {
+	if equal(lastVal) {
 		return lastVal, nil
 	}
-	if lt(zeroVal) ||
-		!lt(lastVal) {
+	if lessThan(zeroVal) ||
+		!lessThan(lastVal) {
 		//its outside of our range. because its not the first or last one, and it's larger than the last(largest) one, and smaller than the first(smallest) one.
 		return storedItem{}, ErrSplotchRangeExceeded
 	}
 	//it should be within here.
 	index := BinarySearch(splotch.storedItems,
 		func(item *storedItem) bool {
-			return lt(*item)
+			return lessThan(*item)
 		},
 		func(item *storedItem) bool {
-			return eq(*item)
+			return equal(*item)
 		},
 	)
 	if index == -1 {
@@ -143,6 +154,8 @@ func (splotch *inkSplotch) SearchFor(lt func(a storedItem) bool, eq func(a store
 	return *splotch.storedItems[index], nil
 
 }
+
+// loads only the required elements for basic operations.
 func (splotch *inkSplotch) PartialLoad() error {
 	if _, err := os.Stat(splotch.fileLocation); err != nil {
 		//the file does not exist
@@ -176,6 +189,8 @@ func (splotch *inkSplotch) PartialLoad() error {
 	//then that data should be put into splotch
 	return nil
 }
+
+// loads all of the data from disc into memory.
 func (splotch *inkSplotch) FullyLoad() error {
 	if _, err := os.Stat(splotch.fileLocation); err != nil {
 		//the file does not exist
@@ -213,6 +228,8 @@ func (splotch *inkSplotch) FullyLoad() error {
 	splotch.hasFullyLoaded = true
 	return nil
 }
+
+// saves any changes from memory to the disc.
 func (splotch *inkSplotch) SaveToFile() error {
 	//first, we write the largest value we've found so far.
 	f, err := os.OpenFile(splotch.fileLocation, os.O_CREATE|os.O_WRONLY, 0644)
@@ -237,6 +254,8 @@ func (splotch *inkSplotch) SaveToFile() error {
 
 	return f.Close()
 }
+
+// get all of the storedItems from <from>, to <to>
 func (splotch *inkSplotch) GetAll(from, to SplotchKey) ([]storedItem, error) {
 	if from.GreaterThan(splotch.headings.LargestKey) || to.LessThan(splotch.smallestKey) {
 		//outside our range, no need to care.
